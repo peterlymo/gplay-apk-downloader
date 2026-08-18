@@ -77,6 +77,81 @@ The setup script will:
 
 ---
 
+## Docker Deployment (Recommended for VPS)
+
+The bundled `docker-compose.yml` runs the full stack in two containers:
+
+| Service | Image | Exposure |
+|---|---|---|
+| `gplay` | Built from the local `Dockerfile` (Python 3.11, OpenJDK 17, apksigner) | Published on port 5000 (configurable via `PORT`) |
+| `dispenser` | `ghcr.io/peterlymo/aurora-dispenser:latest` | Internal Docker network only — never exposed publicly |
+
+The downloader reaches the dispenser at `http://dispenser:3000` over the private compose network, so `DISPENSER_URL` works out of the box with no configuration.
+
+### Prerequisites
+
+- Docker Engine with the Compose plugin (`docker compose version` to verify)
+- Google accounts with AAS tokens for the dispenser
+
+### Quick Start
+
+```bash
+git clone https://github.com/peterlymo/gplay-apk-downloader.git
+cd gplay-apk-downloader
+
+# Required: dispenser accounts, one per line ("email aas_token")
+nano accounts.txt
+
+# If the dispenser image is private, log in first with a PAT that has read:packages
+docker login ghcr.io -u <github-username>
+
+docker compose up -d --build
+```
+
+Then verify:
+
+```bash
+docker compose ps                    # both containers should be "running"
+curl http://localhost:5000/health    # should return "status": "healthy"
+```
+
+Open `http://<server-ip>:5000` for the web UI.
+
+### Configuration
+
+All settings are optional and can be placed in a `.env` file next to `docker-compose.yml`:
+
+```env
+PORT=5000                # Host port to publish the web UI on
+DISPENSER_URL=           # Override only if the dispenser runs elsewhere (default: http://dispenser:3000)
+CORS_ORIGINS=            # Comma-separated allowed origins
+SITE_URL=                # Public URL, used for canonical links
+LOG_LEVEL=INFO
+```
+
+### Persistence
+
+- The named volume `gplay-data` (mounted at `/home/gplay`) keeps Play auth caches, the download counter, and the APK signing keystore across rebuilds and restarts.
+- The keystore is generated automatically on first start by `docker-entrypoint.sh` — no manual setup needed.
+- `accounts.txt` is mounted read-only into the dispenser container only; the downloader never sees it.
+
+### Common Operations
+
+```bash
+docker compose logs -f gplay        # follow downloader logs
+docker compose logs -f dispenser    # follow dispenser logs
+docker compose restart dispenser    # reload after editing accounts.txt
+docker compose pull dispenser       # update dispenser image, then: docker compose up -d
+docker compose up -d --build        # rebuild after pulling code changes
+docker compose down                 # stop (add -v to also wipe auth cache/keystore)
+```
+
+Both containers restart automatically after a server reboot (`restart: unless-stopped`), so no systemd unit is needed.
+
+> **Note:** Do not also run the aurora-dispenser repo's own `docker-compose.yml` on the same server — this stack already includes the dispenser, and running both would start a duplicate.
+
+---
+
 ## Web Interface
 
 ### Starting the Server
@@ -538,6 +613,9 @@ gplay-apk-downloader/
 │       ├── _browse.html # Catalog browse page template
 │       └── _template.html # App detail page template
 ├── gunicorn.conf.py     # Gunicorn production config
+├── Dockerfile           # Container image (Python 3.11 + JDK 17 + apksigner)
+├── docker-compose.yml   # Full stack: downloader + aurora-dispenser
+├── docker-entrypoint.sh # Generates signing keystore on first container start
 ├── start-server.sh      # Server startup script (dev/production)
 ├── setup.sh             # Installation script
 ├── requirements.txt     # Python dependencies
