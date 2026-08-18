@@ -86,7 +86,7 @@ The bundled `docker-compose.yml` runs the full stack in two containers:
 | `gplay` | Built from the local `Dockerfile` (Python 3.11, OpenJDK 17, apksigner) | Published on port 5000 (configurable via `PORT`) |
 | `dispenser` | `ghcr.io/peterlymo/aurora-dispenser:latest` | Internal Docker network only — never exposed publicly |
 
-The downloader reaches the dispenser at `http://dispenser:3000` over the private compose network, so `DISPENSER_URL` works out of the box with no configuration.
+The downloader reaches the dispenser at `http://dispenser:3000/api/auth` over the private compose network, so `DISPENSER_URL` works out of the box with no configuration.
 
 ### Prerequisites
 
@@ -123,7 +123,7 @@ All settings are optional and can be placed in a `.env` file next to `docker-com
 
 ```env
 PORT=5000                # Host port to publish the web UI on
-DISPENSER_URL=           # Override only if the dispenser runs elsewhere (default: http://dispenser:3000)
+DISPENSER_URL=           # Override only if the dispenser runs elsewhere (default: http://dispenser:3000/api/auth)
 CORS_ORIGINS=            # Comma-separated allowed origins
 SITE_URL=                # Public URL, used for canonical links
 LOG_LEVEL=INFO

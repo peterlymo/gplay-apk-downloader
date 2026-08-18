@@ -9,7 +9,7 @@ services:
     environment:
       # The dispenser is reached over the internal Docker network — it is
       # never exposed publicly. Override via .env only if you host it elsewhere.
-      - DISPENSER_URL=${DISPENSER_URL:-http://dispenser:3000}
+      - DISPENSER_URL=${DISPENSER_URL:-http://dispenser:3000/api/auth}
       # All optional — set in a .env file next to this compose file if needed.
       - CORS_ORIGINS=${CORS_ORIGINS:-}
       - SITE_URL=${SITE_URL:-}
@@ -35,7 +35,7 @@ services:
     container_name: aurora-dispenser
     restart: unless-stopped
     # No ports published — only reachable by the gplay container on the
-    # internal Docker network as http://dispenser:3000.
+    # internal Docker network at http://dispenser:3000/api/auth.
     volumes:
       # Place accounts.txt next to this compose file on the VPS.
       - ./accounts.txt:/app/resources/accounts.txt:ro
