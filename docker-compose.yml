@@ -1,0 +1,46 @@
+services:
+  gplay:
+    build: .
+    image: gplay-apk-downloader
+    container_name: gplay-apk-downloader
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      # The dispenser is reached over the internal Docker network — it is
+      # never exposed publicly. Override via .env only if you host it elsewhere.
+      - DISPENSER_URL=${DISPENSER_URL:-http://dispenser:3000}
+      # All optional — set in a .env file next to this compose file if needed.
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+      - SITE_URL=${SITE_URL:-}
+      - UMAMI_SCRIPT=${UMAMI_SCRIPT:-}
+      - UMAMI_REPLAY_SCRIPT=${UMAMI_REPLAY_SCRIPT:-}
+      - DISABLE_APP_PAGES=${DISABLE_APP_PAGES:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      # Persists Google Play auth caches (~/.gplay-auth*.json), the download
+      # counter, and the APK signing keystore (~/.android/debug.keystore).
+      - gplay-data:/home/gplay
+    depends_on:
+      - dispenser
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  dispenser:
+    image: ghcr.io/peterlymo/aurora-dispenser:latest
+    container_name: aurora-dispenser
+    restart: unless-stopped
+    # No ports published — only reachable by the gplay container on the
+    # internal Docker network as http://dispenser:3000.
+    volumes:
+      # Place accounts.txt next to this compose file on the VPS.
+      - ./accounts.txt:/app/resources/accounts.txt:ro
+      - dispenser-logs:/app/dist/logs
+
+volumes:
+  gplay-data:
+  dispenser-logs:

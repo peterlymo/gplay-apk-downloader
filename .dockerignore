@@ -1,0 +1,11 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+server.log*
+nohup.out
+Dockerfile
+docker-compose.yml
+.dockerignore
+.DS_Store
